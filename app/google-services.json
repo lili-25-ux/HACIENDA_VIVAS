@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "618498537258",
+    "project_id": "hacienda-vivas",
+    "storage_bucket": "hacienda-vivas.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:618498537258:android:f743a1383efcd9f8a11053",
+        "android_client_info": {
+          "package_name": "com.example.hacienda_vivas"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC1FHEug1Waa8D0zIdTv0iagAq2wargxmU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
