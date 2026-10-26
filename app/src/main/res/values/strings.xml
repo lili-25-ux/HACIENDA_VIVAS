@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">HACIENDA_VIVAS</string>
+    <string name="app_name">Rancho Trébol</string>
     <string name="title_lista_bovinos">Lista de Bovinos Registrados</string>
     <string name="title_lista_cultivos">Lista de Cultivos Registrados</string>
 </resources>

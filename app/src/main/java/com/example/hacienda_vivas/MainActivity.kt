@@ -7,6 +7,7 @@ import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -44,7 +45,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnEliminar: Button
     private lateinit var btnLimpiar: Button
 
-    // List Output
+    // List/Result Output
     private lateinit var tvTituloLista: TextView
     private lateinit var tvListaRegistros: TextView
 
@@ -68,7 +69,7 @@ class MainActivity : AppCompatActivity() {
 
         initViews()
         setupListeners()
-        actualizarLista()
+        limpiarCampos()
     }
 
     private fun initViews() {
@@ -97,7 +98,7 @@ class MainActivity : AppCompatActivity() {
         btnEliminar = findViewById(R.id.btnEliminar)
         btnLimpiar = findViewById(R.id.btnLimpiar)
 
-        // List
+        // Result Output
         tvTituloLista = findViewById(R.id.tvTituloLista)
         tvListaRegistros = findViewById(R.id.tvListaRegistros)
     }
@@ -114,7 +115,6 @@ class MainActivity : AppCompatActivity() {
                 cardFormCultivos.visibility = View.VISIBLE
                 tvTituloLista.text = getString(R.string.title_lista_cultivos)
             }
-            actualizarLista()
         }
 
         btnGuardar.setOnClickListener { guardar() }
@@ -164,7 +164,7 @@ class MainActivity : AppCompatActivity() {
             val id = dbHelper.guardarBovino(bovino)
             if (id > 0) {
                 val bovinoConId = bovino.copy(id = id.toInt())
-                // Guardar también en Firebase Firestore
+                // Guardar también en Firebase Realtime Database
                 firebaseHelper.guardarBovino(bovinoConId) { firebaseSuccess ->
                     val msg = if (firebaseSuccess) {
                         "🐄 Bovino registrado en Local y Firebase 🔥 (ID: $id)"
@@ -174,7 +174,6 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
                 }
                 limpiarCampos()
-                actualizarLista()
             } else {
                 Toast.makeText(this, "Error al guardar el bovino", Toast.LENGTH_SHORT).show()
             }
@@ -209,7 +208,7 @@ class MainActivity : AppCompatActivity() {
             val id = dbHelper.guardarCultivo(cultivo)
             if (id > 0) {
                 val cultivoConId = cultivo.copy(id = id.toInt())
-                // Guardar también en Firebase Firestore
+                // Guardar también en Firebase Realtime Database
                 firebaseHelper.guardarCultivo(cultivoConId) { firebaseSuccess ->
                     val msg = if (firebaseSuccess) {
                         "🌱 Cultivo registrado en Local y Firebase 🔥 (ID: $id)"
@@ -219,7 +218,6 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
                 }
                 limpiarCampos()
-                actualizarLista()
             } else {
                 Toast.makeText(this, "Error al guardar el cultivo", Toast.LENGTH_SHORT).show()
             }
@@ -236,17 +234,34 @@ class MainActivity : AppCompatActivity() {
                 return
             }
 
-            val bovino = dbHelper.buscarBovino(letra, numero)
-            if (bovino != null) {
-                currentBovinoId = bovino.id
-                etLetra.setText(bovino.letra)
-                etNumero.setText(bovino.numero)
-                etColor.setText(bovino.color)
-                etRaza.setText(bovino.raza)
-                etObsBovino.setText(bovino.observaciones)
-                Toast.makeText(this, "🐄 Bovino encontrado", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, "No se encontró el bovino $letra-$numero", Toast.LENGTH_SHORT).show()
+            // Buscar primero en Realtime Database
+            firebaseHelper.buscarBovinoRealtime(letra, numero) { bovinoFirebase ->
+                if (bovinoFirebase != null) {
+                    currentBovinoId = bovinoFirebase.id
+                    etLetra.setText(bovinoFirebase.letra)
+                    etNumero.setText(bovinoFirebase.numero)
+                    etColor.setText(bovinoFirebase.color)
+                    etRaza.setText(bovinoFirebase.raza)
+                    etObsBovino.setText(bovinoFirebase.observaciones)
+                    mostrarResultadoBovino(bovinoFirebase)
+                    Toast.makeText(this, "🐄 Bovino encontrado en Realtime Database 🔥", Toast.LENGTH_SHORT).show()
+                } else {
+                    // Fallback a SQLite local
+                    val bovinoLocal = dbHelper.buscarBovino(letra, numero)
+                    if (bovinoLocal != null) {
+                        currentBovinoId = bovinoLocal.id
+                        etLetra.setText(bovinoLocal.letra)
+                        etNumero.setText(bovinoLocal.numero)
+                        etColor.setText(bovinoLocal.color)
+                        etRaza.setText(bovinoLocal.raza)
+                        etObsBovino.setText(bovinoLocal.observaciones)
+                        mostrarResultadoBovino(bovinoLocal)
+                        Toast.makeText(this, "🐄 Bovino encontrado en Local (SQLite)", Toast.LENGTH_SHORT).show()
+                    } else {
+                        tvListaRegistros.text = ""
+                        Toast.makeText(this, "No se encontró el bovino $letra-$numero", Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
 
         } else {
@@ -257,17 +272,34 @@ class MainActivity : AppCompatActivity() {
                 return
             }
 
-            val cultivo = dbHelper.buscarCultivo(codigo)
-            if (cultivo != null) {
-                currentCultivoId = cultivo.id
-                etCodigo.setText(cultivo.codigo)
-                etNombreCultivo.setText(cultivo.nombre)
-                etHectareas.setText(cultivo.hectareas.toString())
-                etEstado.setText(cultivo.estado)
-                etObsCultivo.setText(cultivo.observaciones)
-                Toast.makeText(this, "🌱 Cultivo encontrado", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, "No se encontró el cultivo con código $codigo", Toast.LENGTH_SHORT).show()
+            // Buscar primero en Realtime Database
+            firebaseHelper.buscarCultivoRealtime(codigo) { cultivoFirebase ->
+                if (cultivoFirebase != null) {
+                    currentCultivoId = cultivoFirebase.id
+                    etCodigo.setText(cultivoFirebase.codigo)
+                    etNombreCultivo.setText(cultivoFirebase.nombre)
+                    etHectareas.setText(cultivoFirebase.hectareas.toString())
+                    etEstado.setText(cultivoFirebase.estado)
+                    etObsCultivo.setText(cultivoFirebase.observaciones)
+                    mostrarResultadoCultivo(cultivoFirebase)
+                    Toast.makeText(this, "🌱 Cultivo encontrado en Realtime Database 🔥", Toast.LENGTH_SHORT).show()
+                } else {
+                    // Fallback a SQLite local
+                    val cultivoLocal = dbHelper.buscarCultivo(codigo)
+                    if (cultivoLocal != null) {
+                        currentCultivoId = cultivoLocal.id
+                        etCodigo.setText(cultivoLocal.codigo)
+                        etNombreCultivo.setText(cultivoLocal.nombre)
+                        etHectareas.setText(cultivoLocal.hectareas.toString())
+                        etEstado.setText(cultivoLocal.estado)
+                        etObsCultivo.setText(cultivoLocal.observaciones)
+                        mostrarResultadoCultivo(cultivoLocal)
+                        Toast.makeText(this, "🌱 Cultivo encontrado en Local (SQLite)", Toast.LENGTH_SHORT).show()
+                    } else {
+                        tvListaRegistros.text = ""
+                        Toast.makeText(this, "No se encontró el cultivo con código $codigo", Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
         }
     }
@@ -306,7 +338,6 @@ class MainActivity : AppCompatActivity() {
                 firebaseHelper.guardarBovino(bovinoActualizado) { }
                 Toast.makeText(this, "🐄 Bovino modificado correctamente (Sincronizado con Firebase 🔥)", Toast.LENGTH_SHORT).show()
                 limpiarCampos()
-                actualizarLista()
             } else {
                 Toast.makeText(this, "No se pudo modificar el bovino", Toast.LENGTH_SHORT).show()
             }
@@ -345,7 +376,6 @@ class MainActivity : AppCompatActivity() {
                 firebaseHelper.guardarCultivo(cultivoActualizado) { }
                 Toast.makeText(this, "🌱 Cultivo modificado correctamente (Sincronizado con Firebase 🔥)", Toast.LENGTH_SHORT).show()
                 limpiarCampos()
-                actualizarLista()
             } else {
                 Toast.makeText(this, "No se pudo modificar el cultivo", Toast.LENGTH_SHORT).show()
             }
@@ -358,7 +388,7 @@ class MainActivity : AppCompatActivity() {
             val numero = etNumero.text.toString().trim()
 
             var idToDelete = currentBovinoId
-            if (idToDelete == null && letra.isNotEmpty() && numero.isNotEmpty()) {
+            if (idToDelete == null && (letra.isNotEmpty() && numero.isNotEmpty())) {
                 val encontrado = dbHelper.buscarBovino(letra, numero)
                 idToDelete = encontrado?.id
             }
@@ -368,17 +398,8 @@ class MainActivity : AppCompatActivity() {
                 return
             }
 
-            val filasAfec = dbHelper.eliminarBovino(idToDelete)
-            if (filasAfec > 0) {
-                if (letra.isNotEmpty() && numero.isNotEmpty()) {
-                    firebaseHelper.eliminarBovino(letra, numero) { }
-                }
-                Toast.makeText(this, "🐄 Bovino eliminado correctamente (Sincronizado con Firebase 🔥)", Toast.LENGTH_SHORT).show()
-                limpiarCampos()
-                actualizarLista()
-            } else {
-                Toast.makeText(this, "No se pudo eliminar el bovino", Toast.LENGTH_SHORT).show()
-            }
+            // Primer diálogo de confirmación
+            confirmarEliminacionBovino(idToDelete, letra, numero)
 
         } else {
             val codigo = etCodigo.text.toString().trim().uppercase()
@@ -394,17 +415,72 @@ class MainActivity : AppCompatActivity() {
                 return
             }
 
-            val filasAfec = dbHelper.eliminarCultivo(idToDelete)
-            if (filasAfec > 0) {
-                if (codigo.isNotEmpty()) {
-                    firebaseHelper.eliminarCultivo(codigo) { }
-                }
-                Toast.makeText(this, "🌱 Cultivo eliminado correctamente (Sincronizado con Firebase 🔥)", Toast.LENGTH_SHORT).show()
-                limpiarCampos()
-                actualizarLista()
-            } else {
-                Toast.makeText(this, "No se pudo eliminar el cultivo", Toast.LENGTH_SHORT).show()
+            // Primer diálogo de confirmación
+            confirmarEliminacionCultivo(idToDelete, codigo)
+        }
+    }
+
+    private fun confirmarEliminacionBovino(idToDelete: Int, letra: String, numero: String) {
+        AlertDialog.Builder(this)
+            .setTitle("⚠️ Confirmar Eliminación (1/2)")
+            .setMessage("¿Está seguro de que desea eliminar el bovino ($letra-$numero)?")
+            .setPositiveButton("Sí, continuar") { _, _ ->
+                // Segunda confirmación
+                AlertDialog.Builder(this)
+                    .setTitle("🚨 Confirmación Final (2/2)")
+                    .setMessage("Esta acción eliminará el bovino permanentemente de Local y Firebase. ¿Desea proceder?")
+                    .setPositiveButton("Sí, eliminar permanentemente") { _, _ ->
+                        ejecutarEliminacionBovino(idToDelete, letra, numero)
+                    }
+                    .setNegativeButton("Cancelar", null)
+                    .show()
             }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun ejecutarEliminacionBovino(idToDelete: Int, letra: String, numero: String) {
+        val filasAfec = dbHelper.eliminarBovino(idToDelete)
+        if (filasAfec > 0) {
+            if (letra.isNotEmpty() && numero.isNotEmpty()) {
+                firebaseHelper.eliminarBovino(letra, numero) { }
+            }
+            Toast.makeText(this, "🐄 Bovino eliminado correctamente (Sincronizado con Firebase 🔥)", Toast.LENGTH_SHORT).show()
+            limpiarCampos()
+        } else {
+            Toast.makeText(this, "No se pudo eliminar el bovino", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun confirmarEliminacionCultivo(idToDelete: Int, codigo: String) {
+        AlertDialog.Builder(this)
+            .setTitle("⚠️ Confirmar Eliminación (1/2)")
+            .setMessage("¿Está seguro de que desea eliminar el cultivo con código ($codigo)?")
+            .setPositiveButton("Sí, continuar") { _, _ ->
+                // Segunda confirmación
+                AlertDialog.Builder(this)
+                    .setTitle("🚨 Confirmación Final (2/2)")
+                    .setMessage("Esta acción eliminará el cultivo permanentemente de Local y Firebase. ¿Desea proceder?")
+                    .setPositiveButton("Sí, eliminar permanentemente") { _, _ ->
+                        ejecutarEliminacionCultivo(idToDelete, codigo)
+                    }
+                    .setNegativeButton("Cancelar", null)
+                    .show()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun ejecutarEliminacionCultivo(idToDelete: Int, codigo: String) {
+        val filasAfec = dbHelper.eliminarCultivo(idToDelete)
+        if (filasAfec > 0) {
+            if (codigo.isNotEmpty()) {
+                firebaseHelper.eliminarCultivo(codigo) { }
+            }
+            Toast.makeText(this, "🌱 Cultivo eliminado correctamente (Sincronizado con Firebase 🔥)", Toast.LENGTH_SHORT).show()
+            limpiarCampos()
+        } else {
+            Toast.makeText(this, "No se pudo eliminar el cultivo", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -423,46 +499,30 @@ class MainActivity : AppCompatActivity() {
         etHectareas.text?.clear()
         etEstado.text?.clear()
         etObsCultivo.text?.clear()
+
+        tvListaRegistros.text = ""
     }
 
-    private fun actualizarLista() {
-        if (isModoBovinos()) {
-            tvTituloLista.text = getString(R.string.title_lista_bovinos)
-            val lista = dbHelper.obtenerTodosBovinos()
-            if (lista.isEmpty()) {
-                tvListaRegistros.text = "No hay bovinos registrados en la base de datos."
-            } else {
-                val sb = StringBuilder()
-                for (b in lista) {
-                    val colorText = b.color.ifEmpty { "N/A" }
-                    val razaText = b.raza.ifEmpty { "N/A" }
-                    sb.append("• [ID: ${b.id}] Letra: ${b.letra} | Número: ${b.numero}\n")
-                    sb.append("   Color: $colorText | Raza: $razaText\n")
-                    if (b.observaciones.isNotEmpty()) {
-                        sb.append("   Obs: ${b.observaciones}\n")
-                    }
-                    sb.append("\n")
-                }
-                tvListaRegistros.text = sb.toString().trimEnd()
-            }
-        } else {
-            tvTituloLista.text = getString(R.string.title_lista_cultivos)
-            val lista = dbHelper.obtenerTodosCultivos()
-            if (lista.isEmpty()) {
-                tvListaRegistros.text = "No hay cultivos registrados en la base de datos."
-            } else {
-                val sb = StringBuilder()
-                for (c in lista) {
-                    val estadoText = c.estado.ifEmpty { "N/A" }
-                    sb.append("• [ID: ${c.id}] Código: ${c.codigo} | Nombre: ${c.nombre}\n")
-                    sb.append("   Hectáreas: ${c.hectareas} ha | Estado: $estadoText\n")
-                    if (c.observaciones.isNotEmpty()) {
-                        sb.append("   Obs: ${c.observaciones}\n")
-                    }
-                    sb.append("\n")
-                }
-                tvListaRegistros.text = sb.toString().trimEnd()
-            }
+    private fun mostrarResultadoBovino(b: Bovino) {
+        val colorText = b.color.ifEmpty { "N/A" }
+        val razaText = b.raza.ifEmpty { "N/A" }
+        val sb = StringBuilder()
+        sb.append("• [ID: ${b.id}] Letra: ${b.letra} | Número: ${b.numero}\n")
+        sb.append("   Color: $colorText | Raza: $razaText\n")
+        if (b.observaciones.isNotEmpty()) {
+            sb.append("   Obs: ${b.observaciones}\n")
         }
+        tvListaRegistros.text = sb.toString().trimEnd()
+    }
+
+    private fun mostrarResultadoCultivo(c: Cultivo) {
+        val estadoText = c.estado.ifEmpty { "N/A" }
+        val sb = StringBuilder()
+        sb.append("• [ID: ${c.id}] Código: ${c.codigo} | Nombre: ${c.nombre}\n")
+        sb.append("   Hectáreas: ${c.hectareas} ha | Estado: $estadoText\n")
+        if (c.observaciones.isNotEmpty()) {
+            sb.append("   Obs: ${c.observaciones}\n")
+        }
+        tvListaRegistros.text = sb.toString().trimEnd()
     }
 }

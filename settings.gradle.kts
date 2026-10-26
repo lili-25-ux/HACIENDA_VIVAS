@@ -22,6 +22,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "HACIENDA_VIVAS"
+rootProject.name = "Rancho_Trebol"
 include(":app")
  

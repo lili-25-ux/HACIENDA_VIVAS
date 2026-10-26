@@ -27,7 +27,7 @@ class DatabaseHelper(context: Context) :
     SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     companion object {
-        private const val DATABASE_NAME = "HaciendaVivas.db"
+        private const val DATABASE_NAME = "RanchoTrebol.db"
         private const val DATABASE_VERSION = 1
 
         // Tabla Bovinos

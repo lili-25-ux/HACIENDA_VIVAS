@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "618498537258",
+    "firebase_url": "https://hacienda-vivas-default-rtdb.firebaseio.com",
     "project_id": "hacienda-vivas",
     "storage_bucket": "hacienda-vivas.firebasestorage.app"
   },
