@@ -23,6 +23,10 @@ class FirebaseHelper {
             "color" to bovino.color,
             "raza" to bovino.raza,
             "observaciones" to bovino.observaciones,
+            "lugar" to bovino.lugar,
+            "lote" to bovino.lote,
+            "fechaNacimiento" to bovino.fechaNacimiento,
+            "coordenadas" to bovino.coordenadas,
         )
 
         // Guardar en Realtime Database
@@ -49,7 +53,7 @@ class FirebaseHelper {
     }
 
     fun buscarBovinoRealtime(letra: String, numero: String, onResult: (Bovino?) -> Unit) {
-        val docId = "${letra}_${numero}"
+        val docId = "${letra}_$numero"
         rtdb.child("bovinos").child(docId).get()
             .addOnSuccessListener { snapshot ->
                 if (snapshot.exists()) {
@@ -96,6 +100,12 @@ class FirebaseHelper {
         val color = snapshot.child("color").getValue(String::class.java) ?: ""
         val raza = snapshot.child("raza").getValue(String::class.java) ?: ""
         val obs = snapshot.child("observaciones").getValue(String::class.java) ?: ""
+        val lugar = snapshot.child("lugar").getValue(String::class.java) ?: ""
+        val lote = snapshot.child("lote").getValue(String::class.java) ?: ""
+        val fn = snapshot.child("fechaNacimiento").getValue(String::class.java)
+            ?: snapshot.child("fecha").getValue(String::class.java) ?: ""
+        val coords = snapshot.child("coordenadas").getValue(String::class.java) ?: ""
+
         if (numero.isEmpty() && letra.isEmpty()) return null
         return Bovino(
             id = id,
@@ -104,6 +114,10 @@ class FirebaseHelper {
             color = color,
             raza = raza,
             observaciones = obs,
+            lugar = lugar,
+            lote = lote,
+            fechaNacimiento = fn,
+            coordenadas = coords,
         )
     }
 
@@ -118,6 +132,8 @@ class FirebaseHelper {
             "hectareas" to cultivo.hectareas,
             "estado" to cultivo.estado,
             "observaciones" to cultivo.observaciones,
+            "fechaNacimiento" to cultivo.fechaNacimiento,
+            "coordenadas" to cultivo.coordenadas,
         )
 
         // Guardar en Realtime Database
@@ -188,6 +204,10 @@ class FirebaseHelper {
         val hectareas = (snapshot.child("hectareas").value as? Number)?.toDouble() ?: 0.0
         val estado = snapshot.child("estado").getValue(String::class.java) ?: ""
         val obs = snapshot.child("observaciones").getValue(String::class.java) ?: ""
+        val fn = snapshot.child("fechaNacimiento").getValue(String::class.java)
+            ?: snapshot.child("fecha").getValue(String::class.java) ?: ""
+        val coords = snapshot.child("coordenadas").getValue(String::class.java) ?: ""
+
         if (codigo.isEmpty() && nombre.isEmpty()) return null
         return Cultivo(
             id = id,
@@ -195,7 +215,9 @@ class FirebaseHelper {
             nombre = nombre,
             hectareas = hectareas,
             estado = estado,
-            observaciones = obs
+            observaciones = obs,
+            fechaNacimiento = fn,
+            coordenadas = coords,
         )
     }
 
@@ -207,6 +229,7 @@ class FirebaseHelper {
                 if (error != null || snapshot == null) return@addSnapshotListener
                 val lista = mutableListOf<Bovino>()
                 for (doc in snapshot.documents) {
+                    val fn = doc.getString("fechaNacimiento") ?: doc.getString("fecha") ?: ""
                     val b = Bovino(
                         id = (doc.getLong("id") ?: 0L).toInt(),
                         numero = doc.getString("numero") ?: "",
@@ -214,6 +237,10 @@ class FirebaseHelper {
                         color = doc.getString("color") ?: "",
                         raza = doc.getString("raza") ?: "",
                         observaciones = doc.getString("observaciones") ?: "",
+                        lugar = doc.getString("lugar") ?: "",
+                        lote = doc.getString("lote") ?: "",
+                        fechaNacimiento = fn,
+                        coordenadas = doc.getString("coordenadas") ?: "",
                     )
                     lista.add(b)
                 }
@@ -227,6 +254,7 @@ class FirebaseHelper {
                 if (error != null || snapshot == null) return@addSnapshotListener
                 val lista = mutableListOf<Cultivo>()
                 for (doc in snapshot.documents) {
+                    val fn = doc.getString("fechaNacimiento") ?: doc.getString("fecha") ?: ""
                     val c = Cultivo(
                         id = (doc.getLong("id") ?: 0L).toInt(),
                         codigo = doc.getString("codigo") ?: "",
@@ -234,6 +262,8 @@ class FirebaseHelper {
                         hectareas = doc.getDouble("hectareas") ?: 0.0,
                         estado = doc.getString("estado") ?: "",
                         observaciones = doc.getString("observaciones") ?: "",
+                        fechaNacimiento = fn,
+                        coordenadas = doc.getString("coordenadas") ?: "",
                     )
                     lista.add(c)
                 }

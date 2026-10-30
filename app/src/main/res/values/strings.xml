@@ -2,4 +2,9 @@
     <string name="app_name">Rancho Trébol</string>
     <string name="title_lista_bovinos">Lista de Bovinos Registrados</string>
     <string name="title_lista_cultivos">Lista de Cultivos Registrados</string>
+    <string name="hint_lugar">Lugar / Ubicación</string>
+    <string name="hint_lote">Lote / Grupo</string>
+    <string name="hint_fecha_nacimiento">Fecha Nacimiento (Opcional, ej. DD/MM/AAAA)</string>
+    <string name="hint_coordenadas">Coordenadas GPS (ej. 4.6097, -74.0817)</string>
+    <string name="btn_ver_mapa">Mapa 🗺️</string>
 </resources>
